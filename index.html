@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voxel Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      /* keep default touch behavior so clicks/touches work */
+    }
+    
+    body {
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+      background: #87CEEB;
+    }
+    
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    #ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      font-size: 14px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    .stat-bar {
+      background: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-left: 3px solid white;
+    }
+    
+    #level-info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      font-size: 14px;
+      text-align: right;
+      pointer-events: none;
+    }
+    
+    #joystick-container {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 120px;
+      height: 120px;
+      pointer-events: all;
+    }
+    
+    #jump-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      background: rgba(255,255,255,0.3);
+      border: 3px solid rgba(255,255,255,0.6);
+      border-radius: 50%;
+      color: white;
+      font-size: 20px;
+      pointer-events: all;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    
+    #dash-btn {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      background: rgba(100,255,255,0.3);
+      border: 3px solid rgba(100,255,255,0.6);
+      border-radius: 50%;
+      color: white;
+      font-size: 16px;
+      pointer-events: all;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    
+    #dash-btn.cooldown {
+      opacity: 0.3;
+    }
+    
+
+    
+    #game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.95);
+      padding: 30px;
+      border: 3px solid #ff4444;
+      color: white;
+      text-align: center;
+      display: none;
+      pointer-events: all;
+    }
+    
+    #game-over h2 {
+      color: #ff4444;
+      margin-bottom: 20px;
+      font-size: 32px;
+    }
+    
+    #game-over button {
+      margin-top: 20px;
+      padding: 10px 30px;
+      background: white;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    #game-over button:hover {
+      background: #ff4444;
+      color: white;
+    }
+    
+    #login-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    #login-screen.hidden {
+      display: none;
+    }
+    
+    #login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 0;
+      max-width: 400px;
+      width: 90%;
+    }
+    
+    #login-box h2 {
+      margin: 0 0 30px 0;
+      font-size: 28px;
+      text-align: center;
+    }
+    
+    #login-form input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 2px solid black;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    #login-form button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: black;
+      color: white;
+      border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    #login-form button:hover {
+      background: #333;
+    }
+    
+    #login-message {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 12px;
+      min-height: 20px;
+    }
+    
+    #login-message.error {
+      color: #ff0000;
+    }
+    
+    #login-message.success {
+      color: #00aa00;
+    }
+    
+    .desktop-controls {
+      display: none;
+    }
+    
+    @media (min-width: 768px) {
+      #joystick-container, #jump-btn, #mine-btn {
+        display: none;
+      }
+      
+      .desktop-controls {
+        display: block;
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: white;
+        font-size: 12px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  
+  <div id="ui">
+    <div id="login-screen">
+      <div id="login-box">
+        <h2>Voxel Quest</h2>
+        <div id="login-form">
+          <input type="text" id="username-input" placeholder="Username" autocomplete="username">
+          <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+          <button id="login-btn">Login</button>
+          <button id="register-btn">Register</button>
+          <div id="login-message"></div>
+        </div>
+      </div>
+    </div>
+    <div id="hud">
+      <div class="stat-bar">Distance: <span id="distance">0</span>m</div>
+      <div class="stat-bar">Score: <span id="score">0</span></div>
+      <div class="stat-bar">Speed: <span id="speed">1.0</span>x</div>
+    </div>
+    
+    <div id="level-info">
+      <div>Wave: <span id="wave">1</span></div>
+      <div>Combo: <span id="combo">0</span>x</div>
+    </div>
+
+    <!-- Host status indicator -->
+    <div id="host-indicator" style="position:absolute; top:10px; right:120px; color:#fff; text-shadow:2px 2px 4px rgba(0,0,0,0.8); font-size:14px; pointer-events:none;">
+      Host: Unknown
+    </div>
+    
+    <div id="joystick-container"></div>
+    <div id="jump-btn">↑</div>
+    <div id="dash-btn">⚡</div>
+    
+
+    
+    <div class="desktop-controls">
+      A/D: Move Left/Right | Space: Jump | Shift: Dash
+    </div>
+    
+    <div id="game-over">
+      <h2>GAME OVER</h2>
+      <p>Distance: <span id="final-distance">0</span>m</p>
+      <p>Score: <span id="final-score">0</span></p>
+      <button id="restart-btn">Restart</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
